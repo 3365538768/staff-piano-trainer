@@ -9,7 +9,7 @@ const server = http.createServer((req, res) => {
   try { pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname); } catch (_) { res.writeHead(400).end(); return; }
   if (pathname === '/') pathname = '/index.html';
   const target = path.resolve(root, '.' + pathname);
-  const publicFiles = ['index.html', 'styles.css', 'music.js', 'learning.js', 'app.js'];
+  const publicFiles = ['index.html', 'styles.css', 'music.js', 'learning.js', 'piano-audio.js', 'app.js'];
   const relative = path.relative(root, target);
   if (relative.startsWith('..') || (!publicFiles.includes(relative) && !relative.startsWith('assets' + path.sep))) { res.writeHead(404).end('Not found'); return; }
   fs.readFile(target, (error, data) => { if (error) { res.writeHead(404).end('Not found'); return; } res.writeHead(200, { 'Content-Type': types[path.extname(target)] || 'application/octet-stream', 'Cache-Control': 'no-cache' }); res.end(data); });

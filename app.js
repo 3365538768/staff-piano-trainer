@@ -59,6 +59,7 @@
     document.querySelectorAll('[data-clef]').forEach(el => { const on = el.dataset.clef === state.settings.clef; el.classList.toggle('selected', on); el.setAttribute('aria-pressed', String(on)); });
     $('auto-check').checked = state.settings.autoNext; $('labels-check').checked = state.settings.labels;
     $('volume-slider').value = state.settings.volume;
+    grandPiano.setVolume(state.settings.volume / 100);
     $('sound-button').innerHTML = icon(state.settings.sound ? 'volume' : 'mute');
     $('sound-button').setAttribute('aria-label', state.settings.sound ? '关闭声音' : '开启声音');
     $('pattern-select').disabled = state.settings.kind === 'single';
@@ -258,46 +259,20 @@
     // Keep the MIDI bound at keydown, so a held key releases the original note.
     activeBase = value; renderPiano();
   }
-  let audioContext = null, master = null;
-  const voices = new Map(), demoTimers = new Set();
+  const demoTimers = new Set();
+  const grandPiano = new window.PianoAudio.GrandPiano({
+    onError: () => { $('instrument-label').textContent = '钢琴音源加载失败'; toast('三角钢琴音源未能播放，请重新打开应用或使用较新的浏览器。'); }
+  });
+  grandPiano.setVolume(state.settings.volume / 100);
+  grandPiano.prepare().then(() => { $('instrument-label').textContent = 'Yamaha C5 · 三角钢琴'; }).catch(() => {});
   function ensureAudio() {
     if (!state.settings.sound) return false;
-    try {
-      if (!audioContext) {
-        const Context = window.AudioContext || window.webkitAudioContext;
-        if (!Context) return false;
-        audioContext = new Context(); master = audioContext.createGain(); master.gain.value = state.settings.volume / 100 * .42;
-        const compressor = audioContext.createDynamicsCompressor(); master.connect(compressor); compressor.connect(audioContext.destination);
-      }
-      if (audioContext.state === 'suspended') audioContext.resume().catch(() => {});
-      return true;
-    } catch (_) { return false; }
+    try { grandPiano.unlock(); return true; } catch (error) { grandPiano.report(error); return false; }
   }
-  function playTone(midi, token) {
-    if (!ensureAudio()) return;
-    releaseTone(token);
-    const now = audioContext.currentTime, frequency = 440 * 2 ** ((midi - 69) / 12);
-    const gain = audioContext.createGain(); gain.connect(master);
-    gain.gain.setValueAtTime(0, now); gain.gain.linearRampToValueAtTime(.29, now + .008); gain.gain.exponentialRampToValueAtTime(.065, now + .32); gain.gain.exponentialRampToValueAtTime(.0001, now + 3.2);
-    const oscs = [1, 2, 3, 4].map((multiple, i) => {
-      const osc = audioContext.createOscillator(), partial = audioContext.createGain();
-      osc.type = 'sine'; osc.frequency.value = frequency * multiple; partial.gain.value = [1, .32, .12, .035][i];
-      osc.connect(partial); partial.connect(gain); osc.start(now); osc.stop(now + 3.4); return osc;
-    });
-    const voice = { gain, oscs, timer: setTimeout(() => { if (voices.get(token) === voice) voices.delete(token); gain.disconnect(); }, 3600) };
-    voices.set(token, voice);
-  }
-  function releaseTone(token) {
-    const v = voices.get(token); if (!v || !audioContext) return;
-    const t = audioContext.currentTime, param = v.gain.gain;
-    if (typeof param.cancelAndHoldAtTime === 'function') param.cancelAndHoldAtTime(t);
-    else { param.cancelScheduledValues(t); param.setValueAtTime(Math.max(.0001, param.value), t); }
-    param.exponentialRampToValueAtTime(.0001, t + .18);
-    v.oscs.forEach(osc => { try { osc.stop(t + .2); } catch (_) {} });
-    voices.delete(token); clearTimeout(v.timer); setTimeout(() => v.gain.disconnect(), 250);
-  }
+  function playTone(midi, token) { if (ensureAudio()) grandPiano.noteOn(midi, token); }
+  function releaseTone(token) { grandPiano.noteOff(token); }
   function stopAll() {
-    for (const token of voices.keys()) releaseTone(token);
+    grandPiano.stopAll();
     for (const timer of demoTimers) clearTimeout(timer); demoTimers.clear();
     held.clear(); activePointers.clear();
   }
@@ -347,7 +322,7 @@
   $('auto-check').addEventListener('change', () => { state.settings.autoNext = $('auto-check').checked; if (!state.settings.autoNext) cancelNext(); save(); });
   $('labels-check').addEventListener('change', () => { state.settings.labels = $('labels-check').checked; save(); renderPiano(); });
   $('sound-button').addEventListener('click', () => { state.settings.sound = !state.settings.sound; if (!state.settings.sound) stopAll(); else ensureAudio(); updatePianoHighlights(); save(); syncSettings(); });
-  $('volume-slider').addEventListener('input', () => { state.settings.volume = Number($('volume-slider').value); if (master) master.gain.setTargetAtTime(state.settings.volume / 100 * .42, audioContext.currentTime, .02); save(); });
+  $('volume-slider').addEventListener('input', () => { state.settings.volume = Number($('volume-slider').value); grandPiano.setVolume(state.settings.volume / 100); save(); });
   $('reveal-button').addEventListener('click', () => finish(false, 'reveal'));
   $('skip-button').addEventListener('click', () => { if (!answered) finish(false, 'skip'); nextQuestion(); });
   $('listen-button').addEventListener('click', listen); $('next-button').addEventListener('click', advance);
@@ -364,7 +339,8 @@
   $('piano').addEventListener('click', event => { if (event.detail !== 0) return; const key = event.target.closest('[data-midi]'); if (!key) return; const midi = Number(key.dataset.midi); playTone(midi, 'accessible'); inputNote(midi, true); setTimeout(() => releaseTone('accessible'), 350); });
   document.addEventListener('keydown', event => {
     if (event.metaKey || event.ctrlKey || event.altKey || event.repeat || document.querySelector('dialog[open]')) return;
-    if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+    const focused = document.activeElement;
+    if (['SELECT', 'TEXTAREA'].includes(focused.tagName) || (focused.tagName === 'INPUT' && !['checkbox', 'range'].includes(focused.type))) return;
     const key = M.eventKey(event.code, event.key);
     if (key === '?') { event.preventDefault(); showDialog('help-dialog'); return; }
     if (view === 'progress') return;

@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "谱间：离线五线谱与钢琴练习，支持自适应出题、和弦转位和错题复习。",
-  "scripts": { "test": "node --test tests/music.test.js", "start": "node serve.js" },
+  "scripts": { "test": "node --test tests/music.test.js tests/piano-audio.test.js", "start": "node serve.js" },
   "engines": { "node": ">=20" },
   "license": "MIT"
 }

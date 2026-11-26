@@ -48,7 +48,7 @@ git clone https://github.com/3365538768/staff-piano-trainer.git
 
 柱式和弦支持同时按键或逐键选音，选齐后按 Enter（也可点“提交和弦”）。鼠标再点已选琴键可取消，Backspace 全部清空。这兼容普通电脑键盘的按键冲突，也允许在不同八度逐键组合。分解模式则按谱面顺序逐个输入，不需要提交。电脑键盘的物理排列不能完全模拟钢琴指法。
 
-声音是 Web Audio 合成的钢琴风格音色，不是采样钢琴。浏览器需要在首次点击或按键后才能发声；右上角可静音，备份弹窗中可调音量。
+音色使用 **Salamander Grand Piano / Yamaha C5 三角钢琴实录采样**（Alexander Holm，CC BY 3.0）。25 个立体声采样锚点覆盖 C2–C8，通过最近锚点变速覆盖各半音，保留原采样的起音与自然衰减；仅控制音量和松键收音。约 1.4 MB 音频已打包在 `assets/grand-piano.js`，无需联网或另装音源，双击 HTML 也可播放。电脑键盘使用固定力度。浏览器需要在首次点击或按键后才能发声；右上角可静音，备份弹窗中可调音量。
 
 ## 数据存在哪里
 
@@ -65,6 +65,8 @@ npm test
 npm start
 ```
 
-`music.js` 负责拼写、真实音高、和弦转位、题库和加权抽样；`learning.js` 负责正确率、错题状态机及备份校验；`app.js` 负责谱面 SVG、交互、音频和本地存储。测试覆盖所有题库组合的不变量，以及错题连续两次移除、错误重置、八度、转位、分解顺序和备份。
+`music.js` 负责拼写、真实音高、和弦转位、题库和加权抽样；`learning.js` 负责正确率、错题状态机及备份校验；`app.js` 负责谱面 SVG、交互和本地存储，`piano-audio.js` 负责采样播放与松键收音。测试覆盖所有题库组合的不变量，以及错题连续两次移除、错误重置、八度、转位、分解顺序和备份。
 
 乐理参考：[Open Music Theory — Triads and seventh chords](https://open-musictheory.github.io/docs/fundamentals/triads/)。Bravura 字体来自 [Steinberg](https://github.com/steinbergmedia/bravura)，按 SIL Open Font License 分发，许可证在 `assets/Bravura-LICENSE.txt`。应用代码使用 MIT 许可。
+
+钢琴采样来源：[Tone.js Salamander 音源库](https://github.com/Tonejs/audio/tree/efd8296360f9526e379bfbe5c1698ff54d6a1d34/salamander)。原作者 Alexander Holm，按 [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/) 分发，授权与来源见 `assets/grand-piano-LICENSE.txt`。应用未包含完整的 16 力度层采样库；所用 MP3 选集为单力度、固定键盘力度。

@@ -10,6 +10,8 @@
   <link rel="stylesheet" href="styles.css">
   <script src="music.js" defer></script>
   <script src="learning.js" defer></script>
+  <script src="assets/grand-piano.js" defer></script>
+  <script src="piano-audio.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body>
@@ -73,7 +75,7 @@
         </div>
         <div id="feedback" class="feedback neutral" aria-live="polite" aria-atomic="true"><span class="feedback-icon" id="feedback-icon"></span><div><strong id="feedback-title">准备好，听见你的第一个音。</strong><span id="feedback-detail">按下对应按键，或用鼠标点击钢琴。</span></div><button id="next-button" class="button primary" hidden>下一题 <kbd>Enter</kbd></button></div>
         <section class="piano-card" aria-label="虚拟钢琴">
-          <div class="piano-toolbar"><div><h2>指尖键盘</h2><span class="piano-hint" id="piano-hint">白键 A–' · 黑键 W E T Y U O P</span></div><div class="piano-tools"><label class="checkbox"><input type="checkbox" id="labels-check" checked>音名</label><label class="checkbox"><input type="checkbox" id="auto-check" checked>答对自动下一题</label><button class="text-button" id="listen-button" title="试听会展示答案，并计入复习"><span data-icon="volume"></span>试听答案</button></div></div>
+          <div class="piano-toolbar"><div><h2>指尖键盘</h2><span class="piano-hint" id="piano-hint">白键 A–' · 黑键 W E T Y U O P</span><span class="instrument-label" id="instrument-label" role="status">三角钢琴 · 准备中</span></div><div class="piano-tools"><label class="checkbox"><input type="checkbox" id="labels-check" checked>音名</label><label class="checkbox"><input type="checkbox" id="auto-check" checked>答对自动下一题</label><button class="text-button" id="listen-button" title="试听会展示答案，并计入复习"><span data-icon="volume"></span>试听答案</button></div></div>
           <div class="piano-scroll" id="piano-scroll"><div class="piano" id="piano"></div></div>
           <div class="piano-footer"><div class="octave-switch"><span>键盘映射</span><button id="octave-down" class="key-button" aria-label="降低键盘映射一个八度">− <kbd>Z</kbd></button><strong id="octave-label">C4–F5</strong><button id="octave-up" class="key-button" aria-label="升高键盘映射一个八度">+ <kbd>X</kbd></button></div><div id="chord-controls" class="chord-controls" hidden><button id="clear-button" class="text-button">清空 <kbd>⌫</kbd></button><button id="submit-button" class="button primary small">提交和弦 <kbd>Enter</kbd></button></div><span class="keyboard-note" id="input-progress">中央 C = C4</span></div>
         </section>
@@ -88,8 +90,8 @@
     <div class="help-row"><span class="help-number">02</span><div><h3>用电脑键盘，也可以用鼠标</h3><p>白键 <kbd>A S D F G H J K L ; '</kbd>，黑键 <kbd>W E T Y U O P</kbd>。上排 <kbd>Q R I [</kbd> 按钢琴位置留空：E–F、B–C 之间没有黑键。分号、引号在中文输入法下也按物理键位识别。<kbd>Z</kbd> / <kbd>X</kbd> 切换映射八度，音名后的数字代表真实八度。钢琴上的描边区域就是当前键盘映射。</p></div></div>
     <div class="help-row"><span class="help-number">03</span><div><h3>柱式选音，分解按顺序</h3><p>柱式和弦可同时按键，也可逐键选音，按 <kbd>Enter</kbd> 提交；点选已选琴键可取消，<kbd>Backspace</kbd> 清空。分解和弦按谱面从左到右逐音弹奏，不考察节拍。阿尔贝蒂为“低、高、中、高”，七和弦会轮换中间音。</p></div></div>
     <div class="help-row"><span class="help-number">04</span><div><h3>让薄弱的地方多出现几次</h3><p>正确率低和未练过的题有更高抽取权重。错误、跳过、查看或试听答案都会进入错题本。每道错题必须连续答对两次才移除，普通练习中答对也会累积。</p></div></div>
-    <div class="help-tip">音名采用固定唱名：C = Do，D = Re，E = Mi，F = Fa，G = Sol，A = La，B = Si。声音由本机合成，不需要下载音源。所有练习数据仅存于当前浏览器，请定期备份。</div>
-    <p class="source-note">乐理参考：<a href="https://open-musictheory.github.io/docs/fundamentals/triads/" target="_blank" rel="noreferrer">Open Music Theory</a> · 谱字：Bravura（SIL Open Font License）</p>
+    <div class="help-tip">音名采用固定唱名：C = Do，D = Re，E = Mi，F = Fa，G = Sol，A = La，B = Si。音色使用 Yamaha C5 三角钢琴实录采样，保留自然衰减；音源已内置，断网也可弹奏。所有练习数据仅存于当前浏览器，请定期备份。</div>
+    <p class="source-note">乐理参考：<a href="https://open-musictheory.github.io/docs/fundamentals/triads/" target="_blank" rel="noreferrer">Open Music Theory</a> · 谱字：Bravura（SIL Open Font License）<br>音源：Salamander Grand Piano / Yamaha C5，Alexander Holm，<a href="https://creativecommons.org/licenses/by/3.0/" target="_blank" rel="noreferrer">CC BY 3.0</a>，由 <a href="https://github.com/Tonejs/audio/tree/master/salamander" target="_blank" rel="noreferrer">Tone.js 音源库</a>提供 MP3 版本。</p>
   </div><button class="button primary close-dialog wide">开始练习</button></dialog>
   <dialog id="backup-dialog" class="modal compact"><div class="modal-heading"><div><span class="eyebrow">KEEP YOUR PROGRESS</span><h2>数据与备份</h2></div><button class="icon-button close-dialog" aria-label="关闭备份"><span data-icon="close"></span></button></div><p>练习记录保存在当前浏览器中。换电脑、换浏览器或移动文件夹前，先导出一份备份。</p><div class="backup-actions"><button id="export-button" class="button primary"><span data-icon="download"></span>导出练习记录</button><button id="import-button" class="button secondary"><span data-icon="upload"></span>导入备份</button><input type="file" id="import-file" accept="application/json,.json" hidden></div><p class="fine-print">导入会替换当前记录，导入前会再显示确认。练习记录不会上传到 GitHub。</p><label class="volume-setting" for="volume-slider">音量 <input type="range" id="volume-slider" min="0" max="100" value="55"></label><div class="danger-zone"><span>重新开始，清空本机练习数据</span><button id="reset-button" class="text-button danger">清空数据</button></div></dialog>
   <dialog id="confirm-dialog" class="modal compact"><div class="modal-heading"><h2 id="confirm-title">确认操作</h2></div><p id="confirm-description"></p><div class="backup-actions"><button id="confirm-cancel" class="button secondary">取消</button><button id="confirm-ok" class="button primary">确认</button></div></dialog>
