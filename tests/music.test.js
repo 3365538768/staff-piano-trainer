@@ -42,10 +42,25 @@ test('双谱表同时保留低音与高音，分解覆盖两手全部音', () =>
   assert.deepEqual(new Set(grand.sequence.map(n => n.midi)), new Set(grand.notes.map(n => n.midi)));
   const single = M.bank({ clef: 'grand' }); assert.equal(single.length, 81); assert.equal(single[0].block, true);
 });
-test('物理键盘 A–L 和 W–O 按半音正确映射', () => {
-  assert.deepEqual(M.WHITE_KEYS.map(k => M.keyMidi(k, 60)), [60, 62, 64, 65, 67, 69, 71, 72, 74]);
-  assert.deepEqual(Object.keys(M.BLACK_KEYS).map(k => M.keyMidi(k, 60)), [61, 63, 66, 68, 70, 73]);
-  assert.equal(M.keyMidi('r', 60), null); assert.equal(M.keyMidi('A', 36), 36);
+test('扩展白键到分号和引号，黑键按钢琴位置保留空位', () => {
+  assert.deepEqual(M.WHITE_KEYS.map(k => M.keyMidi(k, 60)), [60, 62, 64, 65, 67, 69, 71, 72, 74, 76, 77]);
+  assert.deepEqual(Object.keys(M.BLACK_KEYS).map(k => M.keyMidi(k, 60)), [61, 63, 66, 68, 70, 73, 75]);
+  for (const key of ['q', 'r', 'i', '[']) assert.equal(M.keyMidi(key, 60), null);
+  assert.equal(M.keyMidi('A', 36), 36); assert.equal(M.KEYBOARD_SPAN, 17);
+});
+test('中文输入法和 Shift 标点仍按物理键位输入', () => {
+  assert.equal(M.eventKey('Semicolon', '；'), ';'); assert.equal(M.eventKey('Semicolon', ':'), ';');
+  assert.equal(M.eventKey('Quote', '‘'), "'"); assert.equal(M.eventKey('Quote', '"'), "'");
+  assert.equal(M.eventKey('KeyP', 'Process'), 'p'); assert.equal(M.eventKey('KeyA', 'A'), 'a');
+  assert.equal(M.eventKey('', '’'), "'"); assert.equal(M.eventKey('', '；'), ';');
+});
+test('和弦中文名称、符号和转位均明确显示，已有错题 ID 保持兼容', () => {
+  assert.equal(q.title, 'C 大三和弦 · 原位'); assert.equal(q.chordSymbol, 'C');
+  assert.equal(q.id, 'treble:chord:28:0:major:0:block');
+  const seventh = M.makeQuestion({ ...q.spec, quality: 'maj7', inversion: 3 });
+  assert.equal(seventh.title, 'C 大七和弦 · 第三转位'); assert.equal(seventh.chordSymbol, 'Cmaj7');
+  const minor = M.makeQuestion({ ...q.spec, rootStep: 34, accidental: -1, quality: 'minor', inversion: 1 });
+  assert.equal(minor.title, 'B♭ 小三和弦 · 第一转位'); assert.equal(minor.chordSymbol, 'B♭m');
 });
 test('完整题库谱面拼写、ID、排序和序列不变量', () => {
   for (const clef of ['treble', 'bass', 'grand']) for (const kind of ['single', 'chord', 'mixed']) for (const accidentalMode of ['natural', 'chromatic']) {
@@ -58,7 +73,7 @@ test('完整题库谱面拼写、ID、排序和序列不变量', () => {
       assert.ok(q.sequence.every(n => q.notes.some(t => t.midi === n.midi)));
       assert.deepEqual(new Set(q.sequence.map(n => n.midi)), new Set(q.notes.map(n => n.midi)));
       const range = M.keyboardRange(q), reachable = new Set();
-      for (let base = range.min; base + 14 <= range.max; base += 12) for (const key of [...M.WHITE_KEYS, ...Object.keys(M.BLACK_KEYS)]) reachable.add(M.keyMidi(key, base));
+      for (let base = range.min; base + M.KEYBOARD_SPAN <= range.max; base += 12) for (const key of [...M.WHITE_KEYS, ...Object.keys(M.BLACK_KEYS)]) reachable.add(M.keyMidi(key, base));
       assert.ok(q.notes.every(n => reachable.has(n.midi)), '每个音都必须能通过 Z/X 和电脑键盘弹出');
       if (accidentalMode === 'natural') assert.ok(q.notes.every(n => n.accidental === 0));
     }

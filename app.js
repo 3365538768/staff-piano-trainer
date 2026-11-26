@@ -95,6 +95,7 @@
     $('question-number').textContent = `第 ${String(questionNumber).padStart(2, '0')} 题`;
     $('next-button').hidden = true; $('reveal-button').disabled = !current; $('listen-button').disabled = !current; $('skip-button').disabled = !current;
     $('chord-controls').hidden = !current || !current.block;
+    $('chord-heading').hidden = !current || current.spec.kind !== 'chord';
     $('feedback').className = 'feedback neutral'; $('feedback-icon').innerHTML = icon('note');
     if (!current) {
       $('score').innerHTML = view === 'review' ? `<div class="empty-score">${icon('check')}<h2>这一页，清空了。</h2><p>目前没有待复习的错题。<br>去自由练习，认识更多音符吧。</p><button class="button primary" id="empty-practice">继续自由练习</button></div>` : `<div class="empty-score">${icon('sliders')}<h2>这个组合暂时没有题目</h2><p>请尝试加入变化音，或更换和弦类型、转位。<br>三音和弦没有第三转位。</p></div>`;
@@ -107,6 +108,8 @@
       renderPiano(); updateStats(); return;
     }
     const q = current;
+    $('chord-name').textContent = q.spec.kind === 'chord' ? q.title : '';
+    $('chord-symbol').textContent = q.chordSymbol || '';
     const range = M.keyboardRange(q);
     activeBase = range.base; pianoMin = range.min; pianoMax = range.max;
     $('clef-tag').textContent = clefName(q.spec.clef);
@@ -180,8 +183,7 @@
     } else for (const voice of q.voices) drawNotes(voice.notes, voice.clef, width * .56);
     svg += '</g></svg>';
     $('score').innerHTML = svg;
-    // The accessible description states the task, without revealing the answer.
-    $('score').setAttribute('aria-label', `${clefName(q.spec.clef)}，${q.spec.kind === 'single' ? '单音识谱' : M.PATTERNS[q.spec.pattern]}，共 ${q.block ? q.notes.length : q.sequence.length} 个音。请读谱，在钢琴输入。`);
+    $('score').setAttribute('aria-label', `${clefName(q.spec.clef)}，${q.title}，${q.spec.kind === 'single' ? '单音识谱' : M.PATTERNS[q.spec.pattern]}，共 ${q.block ? q.notes.length : q.sequence.length} 个音。请读谱，在钢琴输入。`);
   }
   function renderPiano() {
     const whites = [];
@@ -196,9 +198,9 @@
     }
     $('piano').innerHTML = html;
     $('piano').style.minWidth = Math.max(560, whites.length * 38) + 'px';
-    $('octave-label').textContent = `${M.name(M.fromMidi(activeBase))}–${M.name(M.fromMidi(activeBase + 14))}`;
+    $('octave-label').textContent = `${M.name(M.fromMidi(activeBase))}–${M.name(M.fromMidi(activeBase + M.KEYBOARD_SPAN))}`;
     $('octave-down').disabled = activeBase <= pianoMin;
-    $('octave-up').disabled = activeBase + 26 > pianoMax;
+    $('octave-up').disabled = activeBase + 12 + M.KEYBOARD_SPAN > pianoMax;
     updatePianoHighlights();
     const selectedOctave = $('piano').querySelector(`[data-midi="${activeBase}"]`);
     if (selectedOctave) {
@@ -252,7 +254,7 @@
   function clearInput() { if (answered) return; selected.clear(); stepIndex = 0; renderScore(); updatePianoHighlights(); if (current) { $('feedback-title').textContent = '已清空，重新试一遍。'; $('feedback-detail').textContent = current.block ? '选出所有音符，按 Enter 提交。' : '从谱面第一个音重新开始。'; } }
   function shiftOctave(delta) {
     const value = activeBase + delta * 12;
-    if (value < pianoMin || value + 14 > pianoMax) return;
+    if (value < pianoMin || value + M.KEYBOARD_SPAN > pianoMax) return;
     // Keep the MIDI bound at keydown, so a held key releases the original note.
     activeBase = value; renderPiano();
   }
@@ -363,7 +365,7 @@
   document.addEventListener('keydown', event => {
     if (event.metaKey || event.ctrlKey || event.altKey || event.repeat || document.querySelector('dialog[open]')) return;
     if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
-    const key = event.key.toLowerCase();
+    const key = M.eventKey(event.code, event.key);
     if (key === '?') { event.preventDefault(); showDialog('help-dialog'); return; }
     if (view === 'progress') return;
     // Enter/Space must retain native semantics on focused buttons.

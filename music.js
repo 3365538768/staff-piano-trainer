@@ -80,8 +80,10 @@
     } else sequence = all;
     const canonical = { clef, kind, rootStep, accidental, quality: kind === 'chord' ? quality : 'major', inversion: kind === 'chord' ? inversion : 0, pattern, ...(clef === 'grand' && kind === 'single' ? { upperStep, upperAccidental } : {}) };
     const id = Object.values(canonical).join(':');
-    const title = kind === 'single' ? (clef === 'grand' ? '双手单音' : '单音识谱') : `${name(root).replace(/\d/g, '')}${CHORDS[quality].symbol} · ${INVERSIONS[inversion]}`;
-    return { id, spec: canonical, voices, notes: all, sequence, block: pattern === 'block' && all.length > 1, title };
+    const rootName = name(root).replace(/\d/g, '');
+    const chordSymbol = kind === 'chord' ? `${rootName}${CHORDS[quality].symbol}` : null;
+    const title = kind === 'single' ? (clef === 'grand' ? '双手单音' : '单音识谱') : `${rootName} ${CHORDS[quality].name} · ${INVERSIONS[inversion]}`;
+    return { id, spec: canonical, voices, notes: all, sequence, block: pattern === 'block' && all.length > 1, title, chordSymbol };
   }
   function bank(input) {
     const s = settings(input), out = [];
@@ -134,8 +136,16 @@
     for (let i = 0; i < available.length; i++) { value -= weights[i]; if (value <= 0) return available[i]; }
     return available.at(-1);
   }
-  const WHITE_KEYS = ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'];
-  const BLACK_KEYS = { w: 1, e: 3, t: 6, y: 8, u: 10, o: 13 };
+  const WHITE_KEYS = ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', "'"];
+  // Q, R, I and [ align with gaps: no black key before C or between E/F and B/C.
+  const BLACK_KEYS = { w: 1, e: 3, t: 6, y: 8, u: 10, o: 13, p: 15 };
+  const KEYBOARD_SPAN = NATURAL[(WHITE_KEYS.length - 1) % 7] + 12 * Math.floor((WHITE_KEYS.length - 1) / 7);
+  function eventKey(code, key = '') {
+    if (/^Key[A-Z]$/.test(code)) return code.slice(3).toLowerCase();
+    const punctuation = { Semicolon: ';', Quote: "'", BracketLeft: '[' };
+    if (Object.hasOwn(punctuation, code)) return punctuation[code];
+    return ({ '；': ';', ':': ';', '：': ';', '‘': "'", '’': "'", '“': "'", '”': "'", '"': "'", '【': '[' })[key] || key.toLowerCase();
+  }
   function keyMidi(key, base) {
     const idx = WHITE_KEYS.indexOf(key.toLowerCase());
     return idx >= 0 ? base + NATURAL[idx % 7] + 12 * Math.floor(idx / 7) : Object.hasOwn(BLACK_KEYS, key.toLowerCase()) ? base + BLACK_KEYS[key.toLowerCase()] : null;
@@ -148,9 +158,9 @@
   function keyboardRange(q) {
     const base = q.spec.clef === 'bass' ? 36 : 60;
     const min = q.spec.clef === 'treble' ? 60 : 36;
-    // Include the complete A–L mapping at the highest needed octave.
-    const max = Math.min(107, Math.max(min + 23, base + 14, Math.floor(q.notes.at(-1).midi / 12) * 12 + 14));
+    // Include the entire mapped keyboard at the highest needed octave.
+    const max = Math.min(107, Math.max(min + 23, base + KEYBOARD_SPAN, Math.floor(q.notes.at(-1).midi / 12) * 12 + KEYBOARD_SPAN));
     return { base, min, max };
   }
-  return { LETTERS, NATURAL, CHORDS, FAMILIES, INVERSIONS, PATTERNS, DEFAULTS, note, fromMidi, name, chord, settings, makeQuestion, bank, pick, weight, keyMidi, exactChord, keyboardRange, WHITE_KEYS, BLACK_KEYS };
+  return { LETTERS, NATURAL, CHORDS, FAMILIES, INVERSIONS, PATTERNS, DEFAULTS, note, fromMidi, name, chord, settings, makeQuestion, bank, pick, weight, eventKey, keyMidi, exactChord, keyboardRange, WHITE_KEYS, BLACK_KEYS, KEYBOARD_SPAN };
 });
