@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#1d4943">
+  <meta name="description" content="谱间：离线五线谱与钢琴练习。单音、和弦转位、分解和弦、自适应出题和错题复习。">
+  <title>谱间 · 五线谱练习室</title>
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="music.js" defer></script>
+  <script src="learning.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#practice" aria-label="谱间首页"><span class="brand-mark" aria-hidden="true">♮</span><span>谱间<small>PIANO PRACTICE</small></span></a>
+      <div class="sidebar-label">你的练习室</div>
+      <nav aria-label="主导航">
+        <button class="nav-item active" data-view="practice"><span data-icon="staff"></span>自由练习</button>
+        <button class="nav-item" data-view="review"><span data-icon="repeat"></span>错题复习<span class="nav-count" id="review-count">0</span></button>
+        <button class="nav-item" data-view="progress"><span data-icon="chart"></span>学习记录</button>
+      </nav>
+      <section class="daily-card" aria-label="今日练习">
+        <span class="eyebrow">A LITTLE, EVERY DAY</span>
+        <h2>每天一点，<br>让音符变熟悉。</h2>
+        <div class="daily-line"><span>今日已练</span><strong id="today-count">0 <small>题</small></strong></div>
+        <div class="daily-track"><span id="daily-fill"></span></div>
+        <p id="daily-caption">从第一个音开始 · 每日参考 20 题</p>
+      </section>
+      <div class="sidebar-bottom">
+        <button class="utility" id="help-button"><span data-icon="help"></span>使用指南 <kbd>?</kbd></button>
+        <button class="utility" id="backup-button"><span data-icon="download"></span>数据与备份</button>
+        <div class="local-note"><span data-icon="shield"></span>离线可用 · 数据留在本机</div>
+      </div>
+    </aside>
+    <main>
+      <header class="page-heading">
+        <div><div class="eyebrow" id="page-eyebrow">READ. PLAY. REMEMBER.</div><h1 id="page-title">把看到的，弹出来<span>。</span></h1><p id="page-description">从一个音到一组和弦，在指尖记住五线谱。</p></div>
+        <div class="header-right"><span class="local-badge"><i></i>本地练习室</span><button class="icon-button" id="sound-button" aria-label="关闭声音" title="声音开关"><span data-icon="volume"></span></button></div>
+      </header>
+      <div id="storage-warning" class="notice" role="status" hidden></div>
+      <section id="trainer-view">
+        <section class="settings-panel" aria-label="出题设置">
+          <div class="primary-settings">
+            <div class="setting"><label>谱表</label><div class="segmented" id="clef-control" role="group" aria-label="谱表"><button data-clef="treble" class="selected">高音</button><button data-clef="bass">低音</button><button data-clef="grand">高音 + 低音</button></div></div>
+            <div class="setting"><label for="kind-select">练习内容</label><select id="kind-select" data-setting="kind"><option value="single">单音识谱</option><option value="chord">和弦练习</option><option value="mixed">单音 + 和弦</option></select></div>
+            <div class="setting"><label for="pattern-select">弹奏方式</label><select id="pattern-select" data-setting="pattern"><option value="block">柱式 · 组合弹奏</option><option value="up">分解 · 由低到高</option><option value="down">分解 · 由高到低</option><option value="alberti">阿尔贝蒂 · 低高中高</option><option value="mixed">随机混合</option></select></div>
+            <button id="advanced-button" class="advanced-toggle" aria-expanded="false"><span data-icon="sliders"></span>更多设置</button>
+          </div>
+          <div class="advanced-settings" id="advanced-settings" hidden>
+            <div class="setting"><label for="family-select">和弦类型</label><select id="family-select" data-setting="family"><option value="basic">大三 / 小三和弦</option><option value="triads">全部三音和弦（含挂留）</option><option value="sevenths">常见七和弦</option><option value="all">全部常见和弦</option></select></div>
+            <div class="setting"><label for="inversion-select">和弦排列</label><select id="inversion-select" data-setting="inversion"><option value="all">原位 + 全部转位</option><option value="0">仅原位 · Do Mi Sol</option><option value="1">第一转位 · Mi Sol Do</option><option value="2">第二转位 · Sol Do Mi</option><option value="3">第三转位（七和弦）</option></select></div>
+            <div class="setting"><label for="accidentals-select">变化音</label><select id="accidentals-select" data-setting="accidentals"><option value="natural">仅白键 · 自然音</option><option value="chromatic">白键 + 黑键 · 半音</option></select></div>
+            <div class="setting"><label for="range-select">单音音域</label><select id="range-select" data-setting="range"><option value="beginner">入门 · 九个白键范围</option><option value="standard">进阶 · 两个八度</option></select></div>
+          </div>
+          <div class="review-setting-note" id="review-setting-note" hidden><span data-icon="repeat"></span>复习覆盖全部错题，保留每道题原来的谱表、转位和弹法。</div>
+        </section>
+        <div class="exercise-grid">
+          <section class="score-card" aria-label="当前五线谱题目">
+            <div class="score-top"><div class="question-tags"><span id="clef-tag" class="tag">高音谱表</span><span id="kind-tag" class="tag muted">单音识谱</span></div><span id="question-number" class="question-number">第 01 题</span></div>
+            <div id="score" class="score" role="img" aria-label="请读谱并弹奏"></div>
+            <div class="score-bottom"><div class="pattern-description"><span class="small-line"></span><span id="instruction">在下方钢琴弹出谱面上的音符</span></div><div class="score-actions"><button class="text-button" id="skip-button">换一题</button><button class="text-button" id="reveal-button"><span data-icon="eye"></span>查看答案</button></div></div>
+          </section>
+          <aside class="session-card">
+            <div class="eyebrow">THIS SESSION</div><h2>这一轮的积累</h2>
+            <div class="accuracy-ring" id="accuracy-ring"><div><strong id="session-accuracy">—</strong><span>本轮正确率</span></div></div>
+            <div class="session-metrics"><div><strong id="session-count">0</strong><span>已练习</span></div><div><strong id="session-streak">0</strong><span>连续答对</span></div></div>
+            <p id="adaptive-note"><span data-icon="spark"></span>薄弱的音符，会多见几次。</p>
+          </aside>
+        </div>
+        <div id="feedback" class="feedback neutral" aria-live="polite" aria-atomic="true"><span class="feedback-icon" id="feedback-icon"></span><div><strong id="feedback-title">准备好，听见你的第一个音。</strong><span id="feedback-detail">按下对应按键，或用鼠标点击钢琴。</span></div><button id="next-button" class="button primary" hidden>下一题 <kbd>Enter</kbd></button></div>
+        <section class="piano-card" aria-label="虚拟钢琴">
+          <div class="piano-toolbar"><div><h2>指尖键盘</h2><span class="piano-hint" id="piano-hint">白键 A–L · 黑键 W E T Y U O</span></div><div class="piano-tools"><label class="checkbox"><input type="checkbox" id="labels-check" checked>音名</label><label class="checkbox"><input type="checkbox" id="auto-check" checked>答对自动下一题</label><button class="text-button" id="listen-button" title="试听会展示答案，并计入复习"><span data-icon="volume"></span>试听答案</button></div></div>
+          <div class="piano-scroll" id="piano-scroll"><div class="piano" id="piano"></div></div>
+          <div class="piano-footer"><div class="octave-switch"><span>键盘映射</span><button id="octave-down" class="key-button" aria-label="降低键盘映射一个八度">− <kbd>Z</kbd></button><strong id="octave-label">C4–D5</strong><button id="octave-up" class="key-button" aria-label="升高键盘映射一个八度">+ <kbd>X</kbd></button></div><div id="chord-controls" class="chord-controls" hidden><button id="clear-button" class="text-button">清空 <kbd>⌫</kbd></button><button id="submit-button" class="button primary small">提交和弦 <kbd>Enter</kbd></button></div><span class="keyboard-note" id="input-progress">中央 C = C4</span></div>
+        </section>
+        <section id="review-list-section" class="review-section" hidden><div class="section-heading"><h2>待复习的音符 <span id="review-list-count">0</span></h2><p>每题连续答对 2 次后移除；中途答错重新计数。</p></div><div id="review-list" class="review-list"></div></section>
+        <footer class="workspace-footer"><span>慢一点也没关系，熟悉来自每一次重复。</span><span id="bank-size">自适应出题</span></footer>
+      </section>
+      <section id="progress-view" hidden aria-label="学习记录"></section>
+    </main>
+  </div>
+  <dialog id="help-dialog" class="modal"><div class="modal-heading"><div><span class="eyebrow">YOUR FIRST NOTES</span><h2>让五线谱，成为肌肉记忆。</h2></div><button class="icon-button close-dialog" aria-label="关闭指南"><span data-icon="close"></span></button></div><div class="help-content">
+    <div class="help-row"><span class="help-number">01</span><div><h3>选谱表，看音符</h3><p>高音、低音或双谱表；先从自然单音开始，再加入和弦、转位与黑键。双谱表单音题需要两个音，和弦题为左手低音加右手和弦。</p></div></div>
+    <div class="help-row"><span class="help-number">02</span><div><h3>用电脑键盘，也可以用鼠标</h3><p>白键 <kbd>A S D F G H J K L</kbd>，黑键 <kbd>W E T Y U O</kbd>。<kbd>Z</kbd> / <kbd>X</kbd> 切换映射八度，音名后的数字代表真实八度。钢琴上的描边区域就是当前键盘映射。</p></div></div>
+    <div class="help-row"><span class="help-number">03</span><div><h3>柱式选音，分解按顺序</h3><p>柱式和弦可同时按键，也可逐键选音，按 <kbd>Enter</kbd> 提交；点选已选琴键可取消，<kbd>Backspace</kbd> 清空。分解和弦按谱面从左到右逐音弹奏，不考察节拍。阿尔贝蒂为“低、高、中、高”，七和弦会轮换中间音。</p></div></div>
+    <div class="help-row"><span class="help-number">04</span><div><h3>让薄弱的地方多出现几次</h3><p>正确率低和未练过的题有更高抽取权重。错误、跳过、查看或试听答案都会进入错题本。每道错题必须连续答对两次才移除，普通练习中答对也会累积。</p></div></div>
+    <div class="help-tip">音名采用固定唱名：C = Do，D = Re，E = Mi，F = Fa，G = Sol，A = La，B = Si。声音由本机合成，不需要下载音源。所有练习数据仅存于当前浏览器，请定期备份。</div>
+    <p class="source-note">乐理参考：<a href="https://open-musictheory.github.io/docs/fundamentals/triads/" target="_blank" rel="noreferrer">Open Music Theory</a> · 谱字：Bravura（SIL Open Font License）</p>
+  </div><button class="button primary close-dialog wide">开始练习</button></dialog>
+  <dialog id="backup-dialog" class="modal compact"><div class="modal-heading"><div><span class="eyebrow">KEEP YOUR PROGRESS</span><h2>数据与备份</h2></div><button class="icon-button close-dialog" aria-label="关闭备份"><span data-icon="close"></span></button></div><p>练习记录保存在当前浏览器中。换电脑、换浏览器或移动文件夹前，先导出一份备份。</p><div class="backup-actions"><button id="export-button" class="button primary"><span data-icon="download"></span>导出练习记录</button><button id="import-button" class="button secondary"><span data-icon="upload"></span>导入备份</button><input type="file" id="import-file" accept="application/json,.json" hidden></div><p class="fine-print">导入会替换当前记录，导入前会再显示确认。练习记录不会上传到 GitHub。</p><label class="volume-setting" for="volume-slider">音量 <input type="range" id="volume-slider" min="0" max="100" value="55"></label><div class="danger-zone"><span>重新开始，清空本机练习数据</span><button id="reset-button" class="text-button danger">清空数据</button></div></dialog>
+  <dialog id="confirm-dialog" class="modal compact"><div class="modal-heading"><h2 id="confirm-title">确认操作</h2></div><p id="confirm-description"></p><div class="backup-actions"><button id="confirm-cancel" class="button secondary">取消</button><button id="confirm-ok" class="button primary">确认</button></div></dialog>
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>
